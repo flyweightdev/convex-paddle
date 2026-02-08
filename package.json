@@ -1,0 +1,87 @@
+{
+  "name": "@flyweightdev/convex-paddle",
+  "description": "A Paddle billing component for Convex.",
+  "repository": "github:flyweightdev/convex-paddle",
+  "homepage": "https://github.com/flyweightdev/convex-paddle#readme",
+  "bugs": {
+    "url": "https://github.com/flyweightdev/convex-paddle/issues"
+  },
+  "version": "0.1.0",
+  "license": "Apache-2.0",
+  "keywords": [
+    "convex",
+    "component",
+    "paddle",
+    "billing",
+    "subscriptions",
+    "payments"
+  ],
+  "type": "module",
+  "scripts": {
+    "dev": "run-p -r 'dev:*'",
+    "dev:backend": "convex dev --typecheck-components",
+    "dev:frontend": "vite --config example/vite.config.ts example",
+    "dev:build": "chokidar 'tsconfig*.json' 'src/**/*.ts' -i '**/*.test.ts' -c 'npm run build:codegen' --initial",
+    "predev": "path-exists .env.local dist || (npm run build && convex dev --once)",
+    "build": "tsc --project ./tsconfig.build.json",
+    "build:codegen": "npx convex codegen --component-dir ./src/component && npm run build",
+    "build:clean": "rm -rf dist *.tsbuildinfo && npm run build:codegen",
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "npm whoami || npm login",
+    "alpha": "npm version prerelease --preid alpha && npm publish --tag alpha && git push --follow-tags",
+    "release": "npm version patch && npm publish && git push --follow-tags"
+  },
+  "files": [
+    "dist",
+    "src"
+  ],
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "types": "./dist/client/index.d.ts",
+      "default": "./dist/client/index.js"
+    },
+    "./_generated/component.js": {
+      "types": "./dist/component/_generated/component.d.ts"
+    },
+    "./convex.config.js": {
+      "types": "./dist/component/convex.config.d.ts",
+      "default": "./dist/component/convex.config.js"
+    }
+  },
+  "peerDependencies": {
+    "convex": "^1.31.7"
+  },
+  "devDependencies": {
+    "@radix-ui/react-dialog": "^1.1.15",
+    "@radix-ui/react-label": "^2.1.8",
+    "@radix-ui/react-separator": "^1.1.8",
+    "@radix-ui/react-slot": "^1.2.4",
+    "@tailwindcss/vite": "^4.1.18",
+    "@types/node": "^25.2.1",
+    "@types/react": "^19.2.13",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^5.1.3",
+    "chokidar-cli": "3.0.0",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "convex": "1.31.7",
+    "lucide-react": "^0.563.0",
+    "npm-run-all2": "8.0.4",
+    "path-exists-cli": "2.0.0",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4",
+    "tailwind-merge": "^3.4.0",
+    "tailwindcss": "^4.1.18",
+    "typescript": "5.9.3",
+    "vite": "^7.3.1"
+  },
+  "types": "./dist/client/index.d.ts",
+  "module": "./dist/client/index.js",
+  "dependencies": {
+    "@convex-dev/workos": "^0.0.1",
+    "@paddle/paddle-node-sdk": "^3.6.0",
+    "@workos-inc/authkit-react": "^0.16.0",
+    "react-router-dom": "^7.13.0"
+  }
+}
