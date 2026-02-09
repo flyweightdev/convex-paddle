@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useQuery, useAction } from "convex/react";
-import { useAuth } from "@workos-inc/authkit-react";
+import { useUser } from "@clerk/clerk-react";
 import { api } from "../../convex/_generated/api";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -9,8 +9,8 @@ import { StatusBadge } from "@/components/status-badge";
 import { Minus, Plus, Users, Building2, Loader2 } from "lucide-react";
 
 export function TeamBillingPage() {
-  const { user } = useAuth();
-  const orgSubscription = useQuery(api.paddle.getOrgSubscription);
+  const { user } = useUser();
+  const orgSubscription = useQuery(api.paddleQueries.getOrgSubscription);
   const createTeamCheckout = useAction(
     api.paddle.createTeamSubscriptionCheckout,
   );
@@ -39,7 +39,7 @@ export function TeamBillingPage() {
       const result = await createTeamCheckout({
         priceId: teamPriceId!,
         quantity: seatCount,
-        email: user?.email,
+        email: user.primaryEmailAddress?.emailAddress,
       });
       if (window.Paddle) {
         window.Paddle.Checkout.open({

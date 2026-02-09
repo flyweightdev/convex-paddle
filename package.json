@@ -79,9 +79,9 @@
   "types": "./dist/client/index.d.ts",
   "module": "./dist/client/index.js",
   "dependencies": {
-    "@convex-dev/workos": "^0.0.1",
+    "@clerk/clerk-react": "^5.60.0",
+    "@clerk/themes": "^2.4.51",
     "@paddle/paddle-node-sdk": "^3.6.0",
-    "@workos-inc/authkit-react": "^0.16.0",
     "react-router-dom": "^7.13.0"
   }
 }

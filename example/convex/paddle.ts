@@ -1,6 +1,6 @@
 "use node";
 
-import { action, query } from "./_generated/server";
+import { action } from "./_generated/server";
 import { components } from "./_generated/api";
 import { PaddleBilling } from "@flyweightdev/convex-paddle";
 import { v } from "convex/values";
@@ -57,11 +57,13 @@ function validateQuantity(quantity: number) {
 /**
  * Require the caller to have an admin or owner role in their org.
  * Reads the org_role claim from the auth token.
- * Customize the required roles for your auth provider.
+ * Clerk emits roles like "org:admin" / "org:member", so we normalize
+ * by stripping the "org:" prefix before comparing.
  */
 function requireOrgAdmin(identity: any) {
   const role = identity.org_role as string | undefined;
-  if (!role || !["admin", "owner"].includes(role)) {
+  const normalized = role?.replace(/^org:/, "");
+  if (!normalized || !["admin", "owner"].includes(normalized)) {
     throw new Error(
       "Insufficient organization role. " +
       "Team billing requires admin or owner role."
@@ -76,7 +78,7 @@ function requireOrgAdmin(identity: any) {
 /**
  * Get or create a Paddle customer for the authenticated user.
  * Prefers the verified email from the auth identity token.
- * Falls back to client-provided email for auth providers (e.g. WorkOS)
+ * Falls back to client-provided email for auth providers
  * that don't include email in the token.
  */
 export const getOrCreateCustomer = action({
@@ -209,7 +211,7 @@ export const createTeamSubscriptionCheckout = action({
     if (!email) throw new Error("Email required: ensure auth token includes email or pass as argument");
 
     // Org ID must come from a trusted source — never from client input.
-    // Here we use the auth token's org_id claim (set by WorkOS, Auth0, etc.).
+    // Here we use the auth token's org_id claim (set by Clerk, Auth0, etc.).
     // If your auth provider doesn't include org_id, replace this with a
     // server-side org membership lookup.
     const orgId = (identity as any).org_id as string | undefined;
@@ -451,88 +453,3 @@ export const getPricingPreview = action({
   },
 });
 
-// ============================================================================
-// QUERIES
-// ============================================================================
-
-/**
- * List subscriptions for the current user.
- */
-export const getUserSubscriptions = query({
-  args: {},
-  returns: v.any(),
-  handler: async (ctx) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) return [];
-
-    return await ctx.runQuery(
-      components.paddle.public.listSubscriptionsByUserId,
-      { userId: identity.subject },
-    );
-  },
-});
-
-/**
- * List transactions for the current user.
- */
-export const getUserTransactions = query({
-  args: {},
-  returns: v.any(),
-  handler: async (ctx) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) return [];
-
-    return await ctx.runQuery(
-      components.paddle.public.listTransactionsByUserId,
-      { userId: identity.subject },
-    );
-  },
-});
-
-/**
- * Count completed one-time purchases for a specific price ID.
- * Uses customData.priceId stored at checkout time.
- */
-export const countUserPurchases = query({
-  args: { priceId: v.string() },
-  returns: v.number(),
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) return 0;
-
-    const transactions = await ctx.runQuery(
-      components.paddle.public.listTransactionsByUserId,
-      { userId: identity.subject },
-    );
-
-    return transactions.filter(
-      (t: any) =>
-        t.status === "completed" &&
-        t.customData?.priceId === args.priceId,
-    ).length;
-  },
-});
-
-/**
- * Get the subscription for the caller's organization.
- * The org ID is derived from the auth token's org_id claim — not from client input.
- * If your auth provider doesn't set org_id, replace the orgId resolution below
- * with your own org membership lookup.
- */
-export const getOrgSubscription = query({
-  args: {},
-  returns: v.any(),
-  handler: async (ctx) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) return null;
-
-    // Org ID from the auth token — never from client input.
-    const orgId = (identity as any).org_id as string | undefined;
-    if (!orgId) return null;
-
-    return await ctx.runQuery(
-      components.paddle.public.getSubscriptionByOrgId,
-      { orgId },
-    );
-  },
-});

@@ -1,25 +1,18 @@
-const clientId = process.env.WORKOS_CLIENT_ID;
+const domain = process.env.CLERK_JWT_ISSUER_DOMAIN;
 
-if (!clientId) {
-  throw new Error("WORKOS_CLIENT_ID environment variable is required");
+if (!domain) {
+  throw new Error(
+    "CLERK_JWT_ISSUER_DOMAIN environment variable is required. " +
+    "Set it in the Convex dashboard to your Clerk Frontend API URL " +
+    "(e.g. https://verb-noun-00.clerk.accounts.dev)."
+  );
 }
 
-const authConfig = {
+export default {
   providers: [
     {
-      type: "customJwt" as const,
-      issuer: "https://api.workos.com/",
-      algorithm: "RS256" as const,
-      applicationID: clientId,
-      jwks: `https://api.workos.com/sso/jwks/${clientId}`,
-    },
-    {
-      type: "customJwt" as const,
-      issuer: `https://api.workos.com/user_management/${clientId}`,
-      algorithm: "RS256" as const,
-      jwks: `https://api.workos.com/sso/jwks/${clientId}`,
+      domain,
+      applicationID: "convex",
     },
   ],
 };
-
-export default authConfig;
