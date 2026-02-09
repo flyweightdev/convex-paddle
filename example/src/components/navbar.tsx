@@ -1,8 +1,8 @@
 import { Link, useLocation } from "react-router-dom";
-import { useAuth } from "@workos-inc/authkit-react";
+import { SignInButton, UserButton } from "@clerk/clerk-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { LogOut, Sparkles } from "lucide-react";
+import { Sparkles } from "lucide-react";
 
 const navLinks = [
   { to: "/store", label: "Store" },
@@ -11,7 +11,6 @@ const navLinks = [
 ] as const;
 
 export function Navbar({ isAuthenticated }: { isAuthenticated: boolean }) {
-  const { signIn, signOut } = useAuth();
   const { pathname } = useLocation();
 
   return (
@@ -45,23 +44,22 @@ export function Navbar({ isAuthenticated }: { isAuthenticated: boolean }) {
 
         <div>
           {isAuthenticated ? (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="text-muted-foreground hover:text-foreground gap-2"
-              onClick={() => signOut()}
-            >
-              <LogOut className="h-4 w-4" />
-              Sign Out
-            </Button>
+            <UserButton
+              appearance={{
+                elements: {
+                  avatarBox: "h-8 w-8",
+                },
+              }}
+            />
           ) : (
-            <Button
-              size="sm"
-              className="shadow-lg shadow-primary/20"
-              onClick={() => signIn()}
-            >
-              Sign In
-            </Button>
+            <SignInButton mode="modal">
+              <Button
+                size="sm"
+                className="shadow-lg shadow-primary/20"
+              >
+                Sign In
+              </Button>
+            </SignInButton>
           )}
         </div>
       </div>

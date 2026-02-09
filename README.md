@@ -544,7 +544,7 @@ The example includes:
 - Subscription management (cancel, pause, resume)
 - Seat-based team billing
 - Customer portal integration
-- Authentication via WorkOS AuthKit
+- Authentication via Clerk
 
 ### Example Environment Variables
 
@@ -552,11 +552,10 @@ The example includes:
 
 ```bash
 VITE_CONVEX_URL=https://your-deployment.convex.cloud
-VITE_WORKOS_CLIENT_ID=client_...
-VITE_WORKOS_REDIRECT_URI=http://localhost:5173/callback
-VITE_PADDLE_CLIENT_TOKEN=test_...   # Paddle client-side token
+VITE_CLERK_PUBLISHABLE_KEY=pk_test_...  # Clerk publishable key
+VITE_PADDLE_CLIENT_TOKEN=test_...       # Paddle client-side token
 VITE_PADDLE_SANDBOX=true
-VITE_PADDLE_SINGLE_PRICE_ID=pri_... # Your one-time payment price ID
+VITE_PADDLE_SINGLE_PRICE_ID=pri_...     # Your one-time payment price ID
 VITE_PADDLE_SUBSCRIPTION_PRICE_ID=pri_... # Your subscription price ID
 ```
 
@@ -566,81 +565,68 @@ VITE_PADDLE_SUBSCRIPTION_PRICE_ID=pri_... # Your subscription price ID
 PADDLE_API_KEY=pdl_sbox_...         # Paddle API key
 PADDLE_WEBHOOK_SECRET=pdl_ntf_...   # Webhook signing secret
 PADDLE_SANDBOX=true                 # Use sandbox API
-WORKOS_CLIENT_ID=client_...         # WorkOS client ID (for auth.config.ts)
+CLERK_JWT_ISSUER_DOMAIN=https://verb-noun-00.clerk.accounts.dev  # Clerk JWT issuer domain
 ```
 
 ## Authentication
 
-This component works with any Convex authentication provider. The example app uses [WorkOS AuthKit](https://www.authkit.com/) with the [`@convex-dev/workos`](https://docs.convex.dev/auth/authkit/) adapter.
+This component works with any Convex authentication provider. The example app uses [Clerk](https://clerk.com/) with the built-in [`convex/react-clerk`](https://docs.convex.dev/auth/clerk) adapter.
 
-### Setting up WorkOS AuthKit
+### Setting up Clerk
 
 1. Install dependencies:
 
 ```bash
-npm install @workos-inc/authkit-react @convex-dev/workos
+npm install @clerk/clerk-react
 ```
 
-2. Create `convex/auth.config.ts`:
+2. Create a JWT template in the [Clerk Dashboard](https://dashboard.clerk.com/):
+   - Navigate to **JWT Templates**
+   - Select the **Convex** template
+   - Do **not** rename the JWT token (it must be called `convex`)
+   - Copy the **Issuer** URL (your Frontend API URL, e.g. `https://verb-noun-00.clerk.accounts.dev`)
+
+3. Create `convex/auth.config.ts`:
 
 ```typescript
-const clientId = process.env.WORKOS_CLIENT_ID;
-
-const authConfig = {
+export default {
   providers: [
     {
-      type: "customJwt" as const,
-      issuer: "https://api.workos.com/",
-      algorithm: "RS256" as const,
-      applicationID: clientId,
-      jwks: `https://api.workos.com/sso/jwks/${clientId}`,
-    },
-    {
-      type: "customJwt" as const,
-      issuer: `https://api.workos.com/user_management/${clientId}`,
-      algorithm: "RS256" as const,
-      jwks: `https://api.workos.com/sso/jwks/${clientId}`,
+      domain: process.env.CLERK_JWT_ISSUER_DOMAIN,
+      applicationID: "convex",
     },
   ],
 };
-
-export default authConfig;
 ```
 
-3. Set up the React provider in your app entry:
+4. Set up the React provider in your app entry:
 
 ```typescript
-import { AuthKitProvider, useAuth } from "@workos-inc/authkit-react";
+import { ClerkProvider, useAuth } from "@clerk/clerk-react";
 import { ConvexReactClient } from "convex/react";
-import { ConvexProviderWithAuthKit } from "@convex-dev/workos";
+import { ConvexProviderWithClerk } from "convex/react-clerk";
 
 const convex = new ConvexReactClient(import.meta.env.VITE_CONVEX_URL);
 
-<AuthKitProvider
-  clientId={import.meta.env.VITE_WORKOS_CLIENT_ID}
-  redirectUri={import.meta.env.VITE_WORKOS_REDIRECT_URI}
-  devMode // Required for localhost (no custom auth domain)
->
-  <ConvexProviderWithAuthKit client={convex} useAuth={useAuth}>
+<ClerkProvider publishableKey={import.meta.env.VITE_CLERK_PUBLISHABLE_KEY}>
+  <ConvexProviderWithClerk client={convex} useAuth={useAuth}>
     <App />
-  </ConvexProviderWithAuthKit>
-</AuthKitProvider>
+  </ConvexProviderWithClerk>
+</ClerkProvider>
 ```
 
-4. Use `ctx.auth.getUserIdentity()` in your Convex functions:
+5. Use `ctx.auth.getUserIdentity()` in your Convex functions:
 
 ```typescript
 const identity = await ctx.auth.getUserIdentity();
 if (!identity) throw new Error("Not authenticated");
 // identity.subject = user ID
+// identity.email = user email (included in Clerk's Convex JWT template)
 ```
 
-> **Note:** WorkOS access tokens don't include `email` in the JWT claims. The user's email is available client-side via `useAuth().user.email` and should be passed as an argument to actions that need it (e.g., creating a Paddle customer).
-
-5. Configure WorkOS dashboard:
-   - Set `WORKOS_CLIENT_ID` in your Convex environment variables
-   - Add your origin (e.g., `http://localhost:5173`) to **CORS allowed origins**
-   - Add your redirect URI (e.g., `http://localhost:5173/callback`) to **Redirects**
+6. Configure environment variables:
+   - Set `CLERK_JWT_ISSUER_DOMAIN` in your Convex dashboard environment variables (the Issuer URL from step 2)
+   - Set `VITE_CLERK_PUBLISHABLE_KEY` in your `.env.local` (from Clerk Dashboard → API Keys)
 
 ## Troubleshooting
 
@@ -662,18 +648,11 @@ Make sure you've:
 
 Ensure your auth provider is configured:
 
-1. Create `convex/auth.config.ts` with your JWT provider config
-2. Set the required environment variables (`WORKOS_CLIENT_ID`, etc.)
+1. Create `convex/auth.config.ts` with your Clerk provider config
+2. Set `CLERK_JWT_ISSUER_DOMAIN` in Convex dashboard environment variables
 3. Run `npx convex dev` to push the config
 4. Verify the user is signed in before calling actions
-
-### "User email not found" errors
-
-WorkOS access tokens don't include `email` in the JWT claims. Pass the email from the client side using `useAuth().user.email` as an argument to your checkout actions.
-
-### CORS errors with WorkOS
-
-Add your development origin (e.g., `http://localhost:5173`) to the **CORS allowed origins** in your WorkOS dashboard under **Authentication** → **Sessions** → **Cross-Origin Resource Sharing (CORS)**.
+5. Check that the JWT template in Clerk is named exactly `convex`
 
 ### Duplicate webhook events
 

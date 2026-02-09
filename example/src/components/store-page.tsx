@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect, useMemo } from "react";
 import { useConvexAuth, useAction, useQuery } from "convex/react";
-import { useAuth } from "@workos-inc/authkit-react";
+import { useUser, useClerk } from "@clerk/clerk-react";
 import { api } from "../../convex/_generated/api";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -27,12 +27,13 @@ type PriceInfo = {
 
 export function StorePage() {
   const { isAuthenticated } = useConvexAuth();
-  const { user, signIn } = useAuth();
+  const { user } = useUser();
+  const { openSignIn } = useClerk();
   const createSubscription = useAction(api.paddle.createSubscriptionCheckout);
   const createPayment = useAction(api.paddle.createPaymentCheckout);
   const getPricing = useAction(api.paddle.getPricingPreview);
-  const subscriptions = useQuery(api.paddle.getUserSubscriptions);
-  const singlePurchaseCount = useQuery(api.paddle.countUserPurchases, {
+  const subscriptions = useQuery(api.paddleQueries.getUserSubscriptions);
+  const singlePurchaseCount = useQuery(api.paddleQueries.countUserPurchases, {
     priceId: SINGLE_PRICE_ID,
   });
 
@@ -74,15 +75,16 @@ export function StorePage() {
 
   const handleCheckout = useCallback(
     async (priceId: string, isSubscription: boolean) => {
-      if (!isAuthenticated || !user) {
-        signIn();
+      const email = user?.primaryEmailAddress?.emailAddress;
+      if (!isAuthenticated || !user || !email) {
+        openSignIn();
         return;
       }
       setLoadingId(priceId);
       try {
         const result = isSubscription
-          ? await createSubscription({ priceId, email: user.email })
-          : await createPayment({ priceId, email: user.email });
+          ? await createSubscription({ priceId, email })
+          : await createPayment({ priceId, email });
         if (window.Paddle) {
           window.Paddle.Checkout.open({
             transactionId: result.transactionId,
@@ -98,7 +100,7 @@ export function StorePage() {
         setLoadingId(null);
       }
     },
-    [isAuthenticated, user, signIn, createSubscription, createPayment],
+    [isAuthenticated, user, openSignIn, createSubscription, createPayment],
   );
 
   const isSubscribed = subscribedPriceIds.has(SUBSCRIPTION_PRICE_ID);

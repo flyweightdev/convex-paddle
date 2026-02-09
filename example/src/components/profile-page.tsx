@@ -15,8 +15,8 @@ import { StatusBadge } from "@/components/status-badge";
 import { ExternalLink, CreditCard, Receipt, Inbox } from "lucide-react";
 
 export function ProfilePage() {
-  const subscriptions = useQuery(api.paddle.getUserSubscriptions);
-  const transactions = useQuery(api.paddle.getUserTransactions);
+  const subscriptions = useQuery(api.paddleQueries.getUserSubscriptions);
+  const transactions = useQuery(api.paddleQueries.getUserTransactions);
   const cancelSubscription = useAction(api.paddle.cancelSubscription);
   const pauseSubscription = useAction(api.paddle.pauseSubscription);
   const resumeSubscription = useAction(api.paddle.resumeSubscription);

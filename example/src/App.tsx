@@ -1,7 +1,7 @@
 import { useEffect, useCallback } from "react";
 import { Routes, Route, useNavigate } from "react-router-dom";
 import { useConvexAuth } from "convex/react";
-import { useAuth } from "@workos-inc/authkit-react";
+import { SignInButton } from "@clerk/clerk-react";
 import { initPaddle, setOnCheckoutComplete } from "@/lib/paddle";
 import type { CheckoutCompleteData } from "@/lib/paddle";
 import { Navbar } from "@/components/navbar";
@@ -61,7 +61,6 @@ export default function App() {
             path="/team"
             element={isAuthenticated ? <TeamBillingPage /> : <AuthGate />}
           />
-          <Route path="/callback" element={<CallbackPage />} />
         </Routes>
       </main>
       <footer className="mt-auto border-t border-border/50 py-8 text-center">
@@ -98,8 +97,6 @@ export default function App() {
 }
 
 function AuthGate() {
-  const { signIn } = useAuth();
-
   return (
     <div className="flex flex-col items-center justify-center py-24 animate-fade-up">
       <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-secondary border border-border mb-6">
@@ -109,18 +106,11 @@ function AuthGate() {
       <p className="mt-2 text-muted-foreground">
         Please sign in to access this page.
       </p>
-      <Button className="mt-8" size="lg" onClick={() => signIn()}>
-        Sign In
-      </Button>
-    </div>
-  );
-}
-
-function CallbackPage() {
-  return (
-    <div className="flex h-64 flex-col items-center justify-center gap-4">
-      <div className="h-8 w-8 rounded-full border-2 border-primary/30 border-t-primary animate-spin" />
-      <p className="text-sm text-muted-foreground">Completing sign in...</p>
+      <SignInButton mode="modal">
+        <Button className="mt-8" size="lg">
+          Sign In
+        </Button>
+      </SignInButton>
     </div>
   );
 }
