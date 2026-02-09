@@ -75,13 +75,13 @@ export function StorePage() {
 
   const handleCheckout = useCallback(
     async (priceId: string, isSubscription: boolean) => {
-      if (!isAuthenticated || !user) {
+      const email = user?.primaryEmailAddress?.emailAddress;
+      if (!isAuthenticated || !user || !email) {
         openSignIn();
         return;
       }
       setLoadingId(priceId);
       try {
-        const email = user.primaryEmailAddress?.emailAddress;
         const result = isSubscription
           ? await createSubscription({ priceId, email })
           : await createPayment({ priceId, email });

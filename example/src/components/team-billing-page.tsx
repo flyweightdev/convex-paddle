@@ -33,13 +33,14 @@ export function TeamBillingPage() {
   const hasTeamPriceId = !!teamPriceId?.startsWith("pri_");
 
   const handleCreateTeamSub = async () => {
-    if (!user || !teamPriceId) return;
+    const email = user?.primaryEmailAddress?.emailAddress;
+    if (!user || !teamPriceId || !email) return;
     setLoading(true);
     try {
       const result = await createTeamCheckout({
         priceId: teamPriceId!,
         quantity: seatCount,
-        email: user.primaryEmailAddress?.emailAddress,
+        email,
       });
       if (window.Paddle) {
         window.Paddle.Checkout.open({
